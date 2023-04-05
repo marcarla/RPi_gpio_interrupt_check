@@ -19,7 +19,7 @@ irqdes
 The irqdes module tests the behaviour of the inerrupt handling system
 when an irq line is in sequence disabled and re-enabled.
 
-
+------
 
 To compile the modules, in a Raspios virgin system, it should be enough
 to complete the system with:
