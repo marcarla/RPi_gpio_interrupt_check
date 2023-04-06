@@ -1,0 +1,136 @@
+
+
+The irqdes module tests the behaviour of the interrupt system when an
+irq line is sequentially disabled and enabled again after a time; events
+(rising and falling edges) are sent both while the irq line is disabled
+and enabled and the triggered interrupts are reported.
+
+Install the module with: insmod irqdes.ko pins=<pin 1>,<pin 2>....
+Pins are in pairs: <irq pin>,<drive pin>,..., up to 4 pairs can be given.
+Default is pins=16,21.
+
+During the test each pin pair must be shorted with a jumper.
+
+The test is started with: "cat /dev/irqdes/pin<n>". Nothing is printed,
+actions and events are logged in /var/log/kern.log.
+
+The following parameters can be adjusted at insmod, or changed
+on the fly (changes effective at next "cat /dev/irq...."):
+     value    [0]  first level to be sent
+     cadence  [10] ms interval before and after each event/action
+     cycles   [5]  how many disable/enable cycles
+     ni       [5]  events before first enable
+     enab     [5]  events while enabled
+     disab    [4]  events while disabled
+     mode     [0]  0: use enable/disable_irq()
+                   1: use irq_set_irq_type()
+
+--------------
+
+
+An example of what can be seen using the kernel functions enable_irq()/disable_irq():
+
+.........
+Apr  5 16:20:30 raspberrypi kernel: [17776.014849] irqdes:irq_service - irq 16:200 - val 0 -> 0
+Apr  5 16:20:30 raspberrypi kernel: [17776.044787] irqdes:edges - gpio 16 - sending 1
+Apr  5 16:20:30 raspberrypi kernel: [17776.044823] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 16:20:30 raspberrypi kernel: [17776.074852] irqdes:read - gpio 16 - disabling irq.
+Apr  5 16:20:30 raspberrypi kernel: [17776.104793] irqdes:edges - gpio 16 - sending 0
+Apr  5 16:20:30 raspberrypi kernel: [17776.134825] irqdes:edges - gpio 16 - sending 1
+Apr  5 16:20:30 raspberrypi kernel: [17776.164892] irqdes:edges - gpio 16 - sending 0
+Apr  5 16:20:30 raspberrypi kernel: [17776.194870] irqdes:edges - gpio 16 - sending 1
+Apr  5 16:20:30 raspberrypi kernel: [17776.224823] irqdes:read - gpio 16 - enabling irq.
+Apr  5 16:20:30 raspberrypi kernel: [17776.224881] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 16:20:30 raspberrypi kernel: [17776.224900] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 16:20:30 raspberrypi kernel: [17776.254821] irqdes:edges - gpio 16 - sending 0
+Apr  5 16:20:30 raspberrypi kernel: [17776.254851] irqdes:irq_service - irq 16:200 - val 0 -> 0
+Apr  5 16:20:30 raspberrypi kernel: [17776.284794] irqdes:edges - gpio 16 - sending 1
+Apr  5 16:20:30 raspberrypi kernel: [17776.284830] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 16:20:30 raspberrypi kernel: [17776.314798] irqdes:edges - gpio 16 - sending 0
+Apr  5 16:20:30 raspberrypi kernel: [17776.314837] irqdes:irq_service - irq 16:200 - val 0 -> 0
+Apr  5 16:20:30 raspberrypi kernel: [17776.344861] irqdes:edges - gpio 16 - sending 1
+Apr  5 16:20:30 raspberrypi kernel: [17776.344902] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 16:20:30 raspberrypi kernel: [17776.374843] irqdes:edges - gpio 16 - sending 0
+Apr  5 16:20:30 raspberrypi kernel: [17776.374888] irqdes:irq_service - irq 16:200 - val 0 -> 0
+Apr  5 16:20:30 raspberrypi kernel: [17776.404831] irqdes:read - gpio 16 - disabling irq.
+Apr  5 16:20:31 raspberrypi kernel: [17776.434832] irqdes:edges - gpio 16 - sending 1
+Apr  5 16:20:31 raspberrypi kernel: [17776.464816] irqdes:edges - gpio 16 - sending 0
+Apr  5 16:20:31 raspberrypi kernel: [17776.494799] irqdes:edges - gpio 16 - sending 1
+Apr  5 16:20:31 raspberrypi kernel: [17776.524841] irqdes:edges - gpio 16 - sending 0
+Apr  5 16:20:31 raspberrypi kernel: [17776.554825] irqdes:read - gpio 16 - enabling irq.
+Apr  5 16:20:31 raspberrypi kernel: [17776.554883] irqdes:irq_service - irq 16:200 - val 0 -> 0
+Apr  5 16:20:31 raspberrypi kernel: [17776.584869] irqdes:edges - gpio 16 - sending 1
+Apr  5 16:20:31 raspberrypi kernel: [17776.584907] irqdes:irq_service - irq 16:200 - val 1 -> 1
+.........
+
+At line 4, the interrupt is disabled when level is high (1); when it is
+enabled again after two cycles, the service routine is invoked twice in
+19 usec. A few lines below, the interrupt is disabled again, this time
+when level is 0; when it is enabled again the service routine is correctly
+invoked only once.
+
+If no signal is sent while the interrupt is disabled (insmod irqdes.ko disab=0),
+everything is fine:
+
+.........
+Apr  5 17:04:53 raspberrypi kernel: [20438.998378] irqdes:edges - gpio 16 - sending 1
+Apr  5 17:04:53 raspberrypi kernel: [20438.998415] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 17:04:53 raspberrypi kernel: [20439.028379] irqdes:read - gpio 16 - disabling irq.
+Apr  5 17:04:53 raspberrypi kernel: [20439.058382] irqdes:read - gpio 16 - enabling irq.
+Apr  5 17:04:53 raspberrypi kernel: [20439.088387] irqdes:edges - gpio 16 - sending 0
+Apr  5 17:04:53 raspberrypi kernel: [20439.088425] irqdes:irq_service - irq 16:200 - val 0 -> 0
+Apr  5 17:04:53 raspberrypi kernel: [20439.118386] irqdes:edges - gpio 16 - sending 1
+Apr  5 17:04:53 raspberrypi kernel: [20439.118423] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 17:04:53 raspberrypi kernel: [20439.148412] irqdes:edges - gpio 16 - sending 0
+Apr  5 17:04:53 raspberrypi kernel: [20439.148453] irqdes:irq_service - irq 16:200 - val 0 -> 0
+Apr  5 17:04:53 raspberrypi kernel: [20439.178412] irqdes:edges - gpio 16 - sending 1
+Apr  5 17:04:53 raspberrypi kernel: [20439.178456] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 17:04:53 raspberrypi kernel: [20439.208390] irqdes:edges - gpio 16 - sending 0
+Apr  5 17:04:53 raspberrypi kernel: [20439.208430] irqdes:irq_service - irq 16:200 - val 0 -> 0
+Apr  5 17:04:53 raspberrypi kernel: [20439.238376] irqdes:read - gpio 16 - disabling irq.
+Apr  5 17:04:53 raspberrypi kernel: [20439.268383] irqdes:read - gpio 16 - enabling irq.
+Apr  5 17:04:53 raspberrypi kernel: [20439.298391] irqdes:edges - gpio 16 - sending 1
+Apr  5 17:04:53 raspberrypi kernel: [20439.298429] irqdes:irq_service - irq 16:200 - val 1 -> 1
+.........
+
+----------------------------------------------------------------------------------------------
+
+Using the function irq_set_irq_type() to switch between IRQ_TYPE_NONE (i.e.,
+interrupt disabled) and IRQ_TYPE_EDGE_BOTH (enabled to trigger both on the
+rising and falling edge), with insmod irqdes.ko mode=1 enab=2 disab=3, the
+result is:
+
+.........
+Apr  5 17:12:38 raspberrypi kernel: [20904.339913] irqdes:edges - gpio 16 - sending 1
+Apr  5 17:12:38 raspberrypi kernel: [20904.339956] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 17:12:38 raspberrypi kernel: [20904.369906] irqdes:edges - gpio 16 - sending 0
+Apr  5 17:12:38 raspberrypi kernel: [20904.369940] irqdes:irq_service - irq 16:200 - val 0 -> 0
+Apr  5 17:12:38 raspberrypi kernel: [20904.399910] irqdes:read - gpio 16 - disabling irq.
+Apr  5 17:12:39 raspberrypi kernel: [20904.429910] irqdes:edges - gpio 16 - sending 1
+Apr  5 17:12:39 raspberrypi kernel: [20904.459921] irqdes:edges - gpio 16 - sending 0
+Apr  5 17:12:39 raspberrypi kernel: [20904.489918] irqdes:edges - gpio 16 - sending 1
+Apr  5 17:12:39 raspberrypi kernel: [20904.519940] irqdes:read - gpio 16 - enabling irq.
+Apr  5 17:12:39 raspberrypi kernel: [20904.519986] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 17:12:39 raspberrypi kernel: [20904.549939] irqdes:edges - gpio 16 - sending 0
+Apr  5 17:12:39 raspberrypi kernel: [20904.549982] irqdes:irq_service - irq 16:200 - val 0 -> 0
+Apr  5 17:12:39 raspberrypi kernel: [20904.579915] irqdes:edges - gpio 16 - sending 1
+Apr  5 17:12:39 raspberrypi kernel: [20904.579953] irqdes:irq_service - irq 16:200 - val 1 -> 1
+Apr  5 17:12:39 raspberrypi kernel: [20904.609905] irqdes:read - gpio 16 - disabling irq.
+Apr  5 17:12:39 raspberrypi kernel: [20904.639905] irqdes:edges - gpio 16 - sending 0
+Apr  5 17:12:39 raspberrypi kernel: [20904.669918] irqdes:edges - gpio 16 - sending 1
+Apr  5 17:12:39 raspberrypi kernel: [20904.700011] irqdes:edges - gpio 16 - sending 0
+Apr  5 17:12:39 raspberrypi kernel: [20904.729917] irqdes:read - gpio 16 - enabling irq.
+Apr  5 17:12:39 raspberrypi kernel: [20904.759936] irqdes:edges - gpio 16 - sending 1
+Apr  5 17:12:39 raspberrypi kernel: [20904.759977] irqdes:irq_service - irq 16:200 - val 1 -> 1
+.........
+
+An interrupt is triggered if and only if the line was disabled at level 0
+and enabled back at level 1. All other conditions (not all shown here) give
+rise to no interrupt request.
+
+----------------------------------------------------------------------------------------------
+
+All tests with an RPi 3B V1.2 with a system 2022-09-22-raspios-bullseye-armhf.img
+(debian 11.5) with kernel upgraded to 6.1.19-v7+.
+
+
