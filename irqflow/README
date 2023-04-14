@@ -1,24 +1,15 @@
 
-The irqflow module tests the behaviour of the interrupt system when one
-or more irq lines receive a continuous stream of interrupt requests.
+The irqflow module tests the behaviour of the interrupt system when one or more irq lines receive a continuous stream of interrupt requests.
 
-A square wave generator is required, to be connected to the lines under
-test (beware of voltage: low level = 0 V, high level = 3.3 V; RPi gpio
-lines are intolerant of voltages out of the limits).
+A square wave generator is required, to be connected to the lines under test (beware of voltage: low level = 0 V, high level = 3.3 V; RPi gpio lines are intolerant of voltages out of the limits).
 
-Rising and falling edge interrupts should alternate every <cadence> us.
-Default value is: cadence=500 us, corresponding to a 1 kHz square wave.
-When interrupts are detected a +/- tolerance is allowed for their timing;
-default is tolerance=100 us.
+Rising and falling edge interrupts should alternate every <cadence> us. Default value is: cadence=500 us, corresponding to a 1 kHz square wave. When interrupts are detected a +/- tolerance is allowed for their timing; default is tolerance=100 us.
 
-Install the module with: insmod irqflow.ko pins=<pin 1>,<pin 2>....
-Up to 8 pins can be given. Default is pins=16,21.
+Install the module with: insmod irqflow.ko pins=<pin 1>,<pin 2>.... Up to 8 pins can be given. Default is pins=16,21.
 
 For each selected pin a device /dev/irqflow/pin<pin number> is created.
 
-Test on each pin starts with: cat /dev/irqflow/pin<n>. Every <setsize>
-events a statistic summary is printed. Stop the test with Ctrl-c. Bad
-events are logged in /var/log/kern.log.
+Test on each pin starts with: cat /dev/irqflow/pin<n>. Every <setsize> events a statistic summary is printed. Stop the test with Ctrl-c. Bad events are logged in /var/log/kern.log.
 
 Module parameters, adjustable at insmod or on the fly, are:
 
@@ -26,17 +17,13 @@ Module parameters, adjustable at insmod or on the fly, are:
     cadence      [500 us] expected interval from interrupt to interrupt
     tolerance    [100 us] allowed skew in interrupt interval
 
-As long as everything goes fine, nothing is reported in /var/log/kern.log
-and a periodic statistic is printed, like:
+As long as everything goes fine, nothing is reported in /var/log/kern.log and a periodic statistic is printed, like:
 
        Events: 10000 in 4999988 usec on pin 21. Bad events: 0
 
-When an interrupt is triggered out of the correct flow, an error message
-is appended to /var/log/kern.log. Two kind of errors are detected: line
-value and timing. An example of error message is:
+When an interrupt is triggered out of the correct flow, an error message is appended to /var/log/kern.log. Two kind of errors are detected: line value and timing. An example of error message is:
 
-Mar 23 17:47:13 raspberrypi kernel: [ 2023.074021] irqflow:irq_service -
-             irq 16:203 - val 1 -> 1 after 999 / 498 us  bad ev.: 4:5690
+Mar 23 17:47:13 raspberrypi kernel: [ 2023.074021] irqflow:irq_service - irq 16:203 - val 1 -> 1 after 999 / 498 us  bad ev.: 4:5690
 
 where:
 
@@ -46,37 +33,36 @@ reports the gpio pin number and the assigned interrupt number;
 
 val 1 -> 1
 ----------
-report the line values when next to the last and last events were handled;
-0 -> 1 and 1 -> 0 are regular behaviour; 0 -> 0 and 1 -> 1 do mean that a
-0 -> 1 or a 1 -> 0 edge has been lost;
+report the line values when next to the last and last events were handled; 0 -> 1 and 1 -> 0 are regular behaviour; 0 -> 0 and 1 -> 1 do mean that a 0 -> 1 or a 1 -> 0 edge has been lost;
 
 after 999 / 498 us
 ------------------
-are the last and next to the last time intervals between consecutive
-interrupts; in this event all values point to a lost interrupt; other
-values, like, e.g., in "val 1 -> 0 after 395 / 590 us" instead would
-point to a regular intrerrupt flow, with timings a little out of the
-tolerance limits because of other CPU activity.
+are the last and next to the last time intervals between consecutive interrupts; in this event all values point to a lost interrupt; other values, like, e.g., in "val 1 -> 0 after 395 / 590 us" instead would point to a regular intrerrupt flow, with timings a little out of the tolerance limits because of other CPU activity.
 
 bad ev.: 4:5690
 ---------------
-number of detected errors and total number of events up to this one, in
-the current set of <setsize> events.
+number of detected errors and total number of events up to this one, in the current set of <setsize> events.
+
 
 Test example
 ------------
-The file 20230405-stats.jpeg contains the statistical results of a test
-on an RPi 3B V1.2 with a system 2022-09-22-raspios-bullseye-armhf.img
-(debian 11.5) with kernel upgraded to 6.1.19-v7+.
 
-A 1 kHz square wave was sent to both pins 16 and 21. The signal on pin
-16 was delayed from 0 to 20 usec respect to the other, checking 10000
-events for each delay (step: 0.1 usec).
+A 1 kHz square wave was sent to both gpio 16 and 21 of an RPi 3B V1.2. Gpios were configured to trigger an interrupt both on the rising and falling edge, hence every 500 us. The signal on gpio 16 was progressively delayed from 0 to 15 us with respect to gpio 21, with a 0.1 us step. A sequence of 50000 interrupts was been checked for each time step. The module counted and recorded all interrupts out of the regular ...010101... sequence. Errors were signaled in the log by a ...00... or a ...11... sequence, with an interval time of 1000 us instead of 500 (with a +/- 100 us tolerance).
 
-In the time interval from 1 to 5.5 usec a number of events were recorded
-pointing to a missing interrupt on pin 16. Nothing similar on pin 21.
+The test has been repeated with three different systems and kernels:
 
-With a negative delay (i.e., with pin 21 lagging pin 16), lost interrupts
-are on pin 21 instead of pin 16.
+2022-01-28-raspios-bullseye-armhf with kernel 5.10.92-v7+
+2023-02-21-raspios-bullseye-armhf-lite with kernel 5.15.84-v7+
+2022-09-22-raspios-bullseye-armhf upgraded to kernel 6.1.19-v7+
+
+The following plots show the results.
+
+![Alt text](file:///kernel-5.10.92-v7%2B.jpeg)
+![Alt text](file:///kernel-5.15.84-v7%2B.jpeg)
+![Alt text](file:///kernel-6.1.19-v7%2B.jpeg)
+
+The error rate is reported as percentage of lost over delivered signals as a function of the time delay of gpio 16 after gpio 21.
+
+With a negative delay (i.e., with pin 21 lagging pin 16), lost interrupts are on pin 21 instead of pin 16.
 
 
