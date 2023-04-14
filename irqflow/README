@@ -72,13 +72,13 @@ Gpios were configured to trigger an interrupt both on the rising and
 falling edge, hence every 500 us.
 
 The signal on gpio 16 was progressively delayed from 0 to 15 us with
-espect to gpio 21, with a 0.1 us step. A sequence of 50000 interrupts
+respect to gpio 21, with a 0.1 us step. A sequence of 50000 interrupts
 was checked for each time step. The module counted and recorded all
 interrupts out of the regular ...010101... sequence. Errors were
 signaled in the log by a ...00... or a ...11... sequence, with an
 interval time of 1000 us instead of 500 (with a +/- 100 us tolerance).
 
-The test has been repeated with three different systems and kernels:
+The test was repeated with three different systems and kernels:
 
 2022-01-28-raspios-bullseye-armhf with kernel 5.10.92-v7+
 2023-02-21-raspios-bullseye-armhf-lite with kernel 5.15.84-v7+
@@ -90,7 +90,7 @@ kernel-5.10.92-v7+.jpeg
 kernel-5.15.84-v7+.jpeg
 kernel-6.1.19-v7+.jpeg
 
-The error rate is reported as percentage of lost over delivered signals
+The error rate is reported as percentage of lost over handled interrupts
 as a function of the time delay of gpio 16 after gpio 21.
 
 With a negative delay (i.e., with pin 21 lagging pin 16), lost interrupts
