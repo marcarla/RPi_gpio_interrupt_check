@@ -7,12 +7,19 @@
 irqflow
 -------
 
-The irqflow module waits for a stream of interrupt events arriving
-at one or more gpio pins with a regular cadence. Each event is checked
-for coherency with the flow; every single anomaly is logged into
-/var/log/kern.log, a statistics of errors is periodically printed.
+The irqflow module waits for a stream of edge-triggered interrupt
+events arriving at one or more gpio pins with a regular cadence.
+Each event is checked for coherency with the flow; every single
+anomaly is logged into /var/log/kern.log, a statistics of errors
+is periodically printed.
 
-A signal generator is required to work with this module.
+irqlevel
+--------
+
+The irqlevel module is similar in action to the irqflow module, with
+the difference that interrupts are level- instead of edge-triggered.
+
+A signal generator is required to work with these modules.
 
 irqdes
 ------
