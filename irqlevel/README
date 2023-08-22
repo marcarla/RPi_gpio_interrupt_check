@@ -1,0 +1,74 @@
+The irqlevel module works very like the irqflow module, testing the
+behaviour of the interrupt system when one or more irq lines receive
+a continuous stream of interrupt requests.
+
+Main difference is that irqflow acknowledges edge-triggered interrupts,
+irqlevel acknowledges level-triggered interrupts.
+
+A square wave generator is required, to be connected to the lines under
+test (beware of voltage: low level = 0 V, high level = 3.3 V; RPi gpio
+lines are intolerant of voltages out of the limits).
+
+High and low level interrupts should alternate every <cadence> us.
+Default value is: cadence=500 us, corresponding to a 1 kHz square wave.
+When interrupts are detected a +/- tolerance is allowed for their timing;
+default is tolerance=100 us.
+
+Install the module with: insmod irqlevel.ko pins=<pin 1>,<pin 2>....
+Up to 8 pins can be given. Default is pins=16,21.
+
+For each selected pin a device /dev/irqlevel/pin<pin number> is created.
+
+Test on each pin starts with: cat /dev/irqlevel/pin<n>. Every <setsize>
+events a statistic summary is printed. Stop the test with Ctrl-c. Bad
+events are logged in /var/log/kern.log.
+
+Module parameters, adjustable at insmod or on the fly, are:
+
+    setsize      [10000 events] frequency of the statistic summary
+    cadence      [500 us] expected interval from interrupt to interrupt
+    tolerance    [100 us] allowed skew in interrupt interval
+
+As long as everything goes fine, nothing is reported in /var/log/kern.log
+and a periodic statistic is printed, like:
+
+       Events: 10000 in 4999988 usec on pin 21. Bad events: 0
+
+When an interrupt is triggered out of the correct flow, an error message
+is appended to /var/log/kern.log. Two kind of errors are detected: line
+value and timing. An example of error message is:
+
+Aug 22 16:46:52 raspberrypi kernel: [ 3301.116892] irqlevel:irq_service - 
+          irq 21:185 - val 0 -> 1 : 1  after 602 / 504 us  bad ev.: 1:18803
+
+Aug 22 16:46:52 raspberrypi kernel: [ 3301.117283] irqlevel:irq_service - 
+          irq 21:185 - val 1 -> 0 : 0  after 394 / 602 us  bad ev.: 2:18804
+
+where:
+
+irq 21:185
+----------
+reports the gpio pin number and the assigned interrupt number;
+
+val 0 -> 1 : 1
+----------
+reports the line values when next to the last and last events were handled
+and the expected line level. 0 -> 1 and 1 -> 0 are regular behaviour;
+0 -> 0 and 1 -> 1 usually do mean that an interrupt has been triggered
+twice.
+
+after 602 / 504 us
+------------------
+are the last and next to the last time intervals between consecutive
+interrupts; in the two reported events the values point to a delay in
+the interrupt servicing: interrupt 18803 was handled with a 102 us delay
+because of other CPU activity (tolerance was 100 us); because of that,
+the following event (18804) appeared 106 us too fast.
+
+bad ev.: 1:18803
+---------------
+number of detected errors and total number of events up to this one,
+in the current set of <setsize> events.
+
+
+
