@@ -21,7 +21,9 @@ For each selected pin a device /dev/irqlevel/pin<pin number> is created.
 
 Test on each pin starts with: cat /dev/irqlevel/pin<n>. Every <setsize>
 events a statistic summary is printed. Stop the test with Ctrl-c. Bad
-events are logged in /var/log/kern.log.
+events are logged in /var/log/kern.log. When the test is started, first
+four events are always logged to /var/log/kern.log (to be sure everything
+works fine).
 
 Module parameters, adjustable at insmod or on the fly, are:
 
